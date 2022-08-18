@@ -14,6 +14,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query(value = "select r from Reservation r where r.customer.id = :customerId and r.active = true")
     List<Reservation> findReservationsByCustomerId(@Param("customerId") Long customerId);
 
-    @Query(value = "select r from Reservation r where r.arrivalDate <= :arrivalDate and r.departureDate > :arrivalDate and r.arrivalDate > :departureDate and r.active = true")
+    @Query(value = "select r from Reservation r where r.arrivalDate > :arrivalDate and r.arrivalDate < :departureDate and r.active = true")
     List<Reservation> findAnyReservationActiveDuringDate(@Param("arrivalDate") LocalDate arrivalDate, @Param("departureDate") LocalDate departureDate);
 }

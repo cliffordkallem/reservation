@@ -3,7 +3,7 @@ package com.cliff.reservation.service;
 import com.cliff.reservation.db.model.Reservation;
 import com.cliff.reservation.db.repository.ReservationRepository;
 import com.cliff.reservation.model.ReservationAvailable;
-import com.cliff.reservation.model.ReservationInfo;
+import com.cliff.reservation.model.ReservationRequest;
 import com.cliff.reservation.utils.LocalDateDeserializer;
 import com.cliff.reservation.utils.LocalDateSerializer;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -48,8 +48,8 @@ public class ReservationServiceTest {
 
     @Test
     void empty_object() {
-        ReservationInfo reservationInfo = new ReservationInfo();
-        Map<String, String> errors = reservationService.validate(reservationInfo);
+        ReservationRequest reservationRequest = new ReservationRequest();
+        Map<String, String> errors = reservationService.validate(reservationRequest);
         assertNotNull(errors.get("fullName"));
         assertNotNull(errors.get("email"));
         assertNotNull(errors.get("arrivalDate"));
@@ -58,64 +58,120 @@ public class ReservationServiceTest {
 
     @Test
     void verify_max_reservationDays() {
-        ReservationInfo reservationInfo = new ReservationInfo();
-        reservationInfo.setFullName("bob mcface");
-        reservationInfo.setEmail("bob@bob.com");
-        reservationInfo.setArrivalDate(LocalDate.now());
-        reservationInfo.setDepartureDate(LocalDate.now().plusDays(10));
-        Map<String, String> errors = reservationService.validate(reservationInfo);
+        ReservationRequest reservationRequest = new ReservationRequest();
+        reservationRequest.setFullName("bob mcface");
+        reservationRequest.setEmail("bob@bob.com");
+        reservationRequest.setArrivalDate(LocalDate.now());
+        reservationRequest.setDepartureDate(LocalDate.now().plusDays(10));
+        Map<String, String> errors = reservationService.validate(reservationRequest);
         assertNotNull(errors.get("departureDate"));
         assertEquals(errors.get("departureDate"), "total days of reservation is too long");
     }
 
     @Test
     void departureDate_before_arrivalDate() {
-        ReservationInfo reservationInfo = new ReservationInfo();
-        reservationInfo.setFullName("bob mcface");
-        reservationInfo.setEmail("bob@bob.com");
-        reservationInfo.setArrivalDate(LocalDate.now());
-        reservationInfo.setDepartureDate(LocalDate.now().minusDays(10));
-        Map<String, String> errors = reservationService.validate(reservationInfo);
+        ReservationRequest reservationRequest = new ReservationRequest();
+        reservationRequest.setFullName("bob mcface");
+        reservationRequest.setEmail("bob@bob.com");
+        reservationRequest.setArrivalDate(LocalDate.now());
+        reservationRequest.setDepartureDate(LocalDate.now().minusDays(10));
+        Map<String, String> errors = reservationService.validate(reservationRequest);
         assertNotNull(errors.get("departureDate"));
         assertEquals(errors.get("departureDate"), "departure date is before arrival date");
     }
 
     @Test
     void arrivalDate_today() {
-        ReservationInfo reservationInfo = new ReservationInfo();
-        reservationInfo.setFullName("bob mcface");
-        reservationInfo.setEmail("bob@bob.com");
-        reservationInfo.setArrivalDate(LocalDate.now());
-        reservationInfo.setDepartureDate(LocalDate.now().plusDays(3));
-        Map<String, String> errors = reservationService.validate(reservationInfo);
+        ReservationRequest reservationRequest = new ReservationRequest();
+        reservationRequest.setFullName("bob mcface");
+        reservationRequest.setEmail("bob@bob.com");
+        reservationRequest.setArrivalDate(LocalDate.now());
+        reservationRequest.setDepartureDate(LocalDate.now().plusDays(3));
+        Map<String, String> errors = reservationService.validate(reservationRequest);
         assertNotNull(errors.get("arrivalDate"));
         assertEquals(errors.get("arrivalDate"), "arrival date must be more than one day in the future");
     }
 
     @Test
     void arrivalDate_twoMonth_future() {
-        ReservationInfo reservationInfo = new ReservationInfo();
-        reservationInfo.setFullName("bob mcface");
-        reservationInfo.setEmail("bob@bob.com");
-        reservationInfo.setArrivalDate(LocalDate.now().plusMonths(2));
-        reservationInfo.setDepartureDate(LocalDate.now().plusMonths(2).plusDays(2));
-        Map<String, String> errors = reservationService.validate(reservationInfo);
+        ReservationRequest reservationRequest = new ReservationRequest();
+        reservationRequest.setFullName("bob mcface");
+        reservationRequest.setEmail("bob@bob.com");
+        reservationRequest.setArrivalDate(LocalDate.now().plusMonths(2));
+        reservationRequest.setDepartureDate(LocalDate.now().plusMonths(2).plusDays(2));
+        Map<String, String> errors = reservationService.validate(reservationRequest);
         assertNotNull(errors.get("arrivalDate"));
         assertEquals(errors.get("arrivalDate"), "arrival date must not be more than one month in the future");
     }
 
     @Test
-    void overlapping_dates() {
-        ReservationInfo reservationInfo = new ReservationInfo();
-        reservationInfo.setFullName("bob mcface");
-        reservationInfo.setEmail("bob@bob.com");
-        reservationInfo.setArrivalDate(LocalDate.now().plusMonths(2));
-        reservationInfo.setDepartureDate(LocalDate.now().plusMonths(2).plusDays(2));
-        when(reservationRepository.findAnyReservationActiveDuringDate(any(), any())).thenReturn(List.of(new Reservation()));
-        Map<String, String> errors = reservationService.validate(reservationInfo);
+    void validate_no_existing_reservation() {
+        ReservationRequest reservationRequest = new ReservationRequest();
+        reservationRequest.setFullName("bob mcface");
+        reservationRequest.setEmail("bob@bob.com");
+        reservationRequest.setArrivalDate(LocalDate.now().plusDays(7));
+        reservationRequest.setDepartureDate(LocalDate.now().plusDays(10));
+        reservationRequest.setId(3l);
+        Reservation reservation = new Reservation();
+        reservation.setDepartureDate(LocalDate.now().plusDays(15));
+        reservation.setArrivalDate(LocalDate.now().plusDays(12));
+        reservation.setId(3l);
+        when(reservationRepository.findAnyReservationActiveDuringDate(any(), any())).thenReturn(List.of(reservation));
+        Map<String, String> errors = reservationService.validate(reservationRequest);
+        assertNotNull(errors.get("id"));
+        assertEquals(errors.get("id"), "id given does not match existing reservations ids");
+    }
+
+    @Test
+    void validate_existing_reservation_filtered() {
+        ReservationRequest reservationRequest = new ReservationRequest();
+        reservationRequest.setFullName("bob mcface");
+        reservationRequest.setEmail("bob@bob.com");
+        reservationRequest.setArrivalDate(LocalDate.now().plusDays(7));
+        reservationRequest.setDepartureDate(LocalDate.now().plusDays(10));
+        reservationRequest.setId(3l);
+        Reservation reservation = new Reservation();
+        reservation.setDepartureDate(LocalDate.now().plusDays(15));
+        reservation.setArrivalDate(LocalDate.now().plusDays(12));
+        reservation.setId(3l);
+        when(reservationRepository.getReferenceById(any())).thenReturn(reservation);
+        when(reservationRepository.findAnyReservationActiveDuringDate(any(), any())).thenReturn(List.of(reservation));
+        Map<String, String> errors = reservationService.validate(reservationRequest);
+        assertEquals(errors.size(), 0);
+    }
+
+    @Test
+    void validate_existing_reservation_notFiltered() {
+        ReservationRequest reservationRequest = new ReservationRequest();
+        reservationRequest.setFullName("bob mcface");
+        reservationRequest.setEmail("bob@bob.com");
+        reservationRequest.setArrivalDate(LocalDate.now().plusDays(7));
+        reservationRequest.setDepartureDate(LocalDate.now().plusDays(10));
+        reservationRequest.setId(4l);
+        Reservation reservation = new Reservation();
+        reservation.setDepartureDate(LocalDate.now().plusDays(15));
+        reservation.setArrivalDate(LocalDate.now().plusDays(12));
+        reservation.setId(3l);
+        when(reservationRepository.getReferenceById(any())).thenReturn(reservation);
+        when(reservationRepository.findAnyReservationActiveDuringDate(any(), any())).thenReturn(List.of(reservation));
+        Map<String, String> errors = reservationService.validate(reservationRequest);
         assertNotNull(errors.get("arrivalDate"));
         assertEquals(errors.get("arrivalDate"), "already existing reservation for date");
     }
+
+    @Test
+    void overlapping_dates() {
+        ReservationRequest reservationRequest = new ReservationRequest();
+        reservationRequest.setFullName("bob mcface");
+        reservationRequest.setEmail("bob@bob.com");
+        reservationRequest.setArrivalDate(LocalDate.now().plusMonths(2));
+        reservationRequest.setDepartureDate(LocalDate.now().plusMonths(2).plusDays(2));
+        when(reservationRepository.findAnyReservationActiveDuringDate(any(), any())).thenReturn(List.of(new Reservation()));
+        Map<String, String> errors = reservationService.validate(reservationRequest);
+        assertNotNull(errors.get("arrivalDate"));
+        assertEquals(errors.get("arrivalDate"), "already existing reservation for date");
+    }
+
 
 
     @Test
@@ -180,4 +236,20 @@ public class ReservationServiceTest {
         ReservationAvailable reservationAvailable = reservationService.checkAvailability(LocalDate.now(), LocalDate.now().plusMonths(1));
         assertEquals(reservationAvailable.getReservationDates().size(), 1);
     }
+
+    @Test
+    void checkAvailability_overlapping_dates_filter() {
+        Reservation reservation = new Reservation();
+        reservation.setDepartureDate(LocalDate.now().plusDays(15));
+        reservation.setArrivalDate(LocalDate.now().plusDays(12));
+
+        Reservation reservation2 = new Reservation();
+        reservation2.setDepartureDate(LocalDate.now().plusDays(25));
+        reservation2.setArrivalDate(LocalDate.now().plusDays(22));
+
+        when(reservationRepository.findAnyReservationActiveDuringDate(any(), any())).thenReturn(List.of(reservation, reservation2));
+        ReservationAvailable reservationAvailable = reservationService.checkAvailability(LocalDate.now(), LocalDate.now().plusMonths(1));
+        assertEquals(reservationAvailable.getReservationDates().size(), 3);
+    }
+
 }

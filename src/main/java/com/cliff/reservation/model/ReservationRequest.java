@@ -3,7 +3,7 @@ package com.cliff.reservation.model;
 import java.time.LocalDate;
 import java.util.Objects;
 
-public class ReservationInfo {
+public class ReservationRequest {
     private Long id;
     private String fullName;
     private String email;
@@ -55,7 +55,7 @@ public class ReservationInfo {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof ReservationInfo that)) {
+        if (!(o instanceof ReservationRequest that)) {
             return false;
         }
         return Objects.equals(id, that.id) &&
@@ -72,7 +72,7 @@ public class ReservationInfo {
 
     @Override
     public String toString() {
-        return "ReservationInfo{" +
+        return "ReservationRequest{" +
                 "id=" + id +
                 ", fullName='" + fullName + '\'' +
                 ", email='" + email + '\'' +
