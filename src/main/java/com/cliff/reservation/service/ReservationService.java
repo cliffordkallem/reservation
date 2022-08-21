@@ -51,11 +51,13 @@ public class ReservationService {
             }
         }
 
-        if (StringUtils.isEmpty(reservationRequest.getFullName())) {
-            errors.put("fullName", "full name is missing");
-        }
-        if (StringUtils.isEmpty(reservationRequest.getEmail())) {
-            errors.put("email", "email is missing");
+        if (reservationRequest.getId() == null) {
+            if (StringUtils.isEmpty(reservationRequest.getFullName())) {
+                errors.put("fullName", "full name is missing");
+            }
+            if (StringUtils.isEmpty(reservationRequest.getEmail())) {
+                errors.put("email", "email is missing");
+            }
         }
         if (reservationRequest.getArrivalDate() == null) {
             errors.put("arrivalDate", "arrival date is missing");

@@ -12,6 +12,7 @@ public class ReservationResponse {
     }
 
     public ReservationResponse(Map<String, String> errors) {
+        status = "ERROR";
         this.errors = errors;
     }
 
