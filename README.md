@@ -122,4 +122,10 @@ to signal that it could not be deleted
 In the resource folder this is a test.py that exist to test the service but 
 only the save and check availability.
 
-Please use python 3
+Please use python 3 also have requests installed
+
+## Future ideas
+1. add file save for h2 as it is only in-memory
+2. add client and move the existing object to the client
+   1. after I would move the local date serializer and deserializer to the client
+3. add more the python script to handle and use inputs
