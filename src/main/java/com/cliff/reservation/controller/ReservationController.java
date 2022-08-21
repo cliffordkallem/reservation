@@ -50,7 +50,7 @@ public class ReservationController {
         Reservation reservation = reservationService.updateReservation(reservationRequest);
         ReservationResponse reservationResponse = new ReservationResponse();
         reservationResponse.setId(reservation.getId());
-        reservationResponse.setStatus("Success");
+        reservationResponse.setStatus("SUCCESS");
         return reservationResponse;
     }
 
